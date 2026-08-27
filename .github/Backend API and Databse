@@ -1,0 +1,57 @@
+const express = require('express');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Initialize in-memory SQLite database
+const db = new sqlite3.Database(':memory:');
+
+db.serialize(() => {
+  db.run("CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN)");
+});
+
+// --- CRUD API ENDPOINTS ---
+
+// CREATE
+app.post('/api/tasks', (req, res) => {
+  const { title } = req.body;
+  db.run("INSERT INTO tasks (title, completed) VALUES (?, ?)", [title, false], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.status(201).json({ id: this.lastID, title, completed: false });
+  });
+});
+
+// READ (All)
+app.get('/api/tasks', (req, res) => {
+  db.all("SELECT * FROM tasks", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// UPDATE
+app.put('/api/tasks/:id', (req, res) => {
+  const { completed } = req.body;
+  db.run("UPDATE tasks SET completed = ? WHERE id = ?", [completed, req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ updated: this.changes });
+  });
+});
+
+// DELETE
+app.delete('/api/tasks/:id', (req, res) => {
+  db.run("DELETE FROM tasks WHERE id = ?", req.params.id, function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ deleted: this.changes });
+  });
+});
+
+// Only listen if not being imported by tests
+if (require.main === module) {
+  app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+}
+
+module.exports = app; // Export for testing
