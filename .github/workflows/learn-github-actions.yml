@@ -9,31 +9,28 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run automated tests
+        run: npm test
+
   deploy:
     name: Deploy to Production
-    needs: test # THIS IS CRITICAL: It waits for the 'test' job to pass
+    needs: test # Waits for the 'test' job above to pass
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' # Only deploy if we are on the main branch
-
-  steps:
-    - name: Trigger Deployment Webhook
-      run: |
-        curl -X POST ${{ secrets.DEPLOY_WEBHOOK_URL }}
-
-
+    if: github.ref == 'refs/heads/main' 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Run automated tests
-      run: npm test
-
+      - name: Trigger Deployment Webhook
+        run: |
+          curl -X POST ${{ secrets.DEPLOY_WEBHOOK_URL }}
