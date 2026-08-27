@@ -25,3 +25,14 @@ jobs:
 
     - name: Run automated tests
       run: npm test
+
+deploy:
+    name: Deploy to Production
+    needs: test # THIS IS CRITICAL: It waits for the 'test' job to pass
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' # Only deploy if we are on the main branch
+
+    steps:
+      - name: Trigger Deployment Webhook
+        run: |
+          curl -X POST ${{ secrets.DEPLOY_WEBHOOK_URL }}
